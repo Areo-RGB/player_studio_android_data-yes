@@ -150,127 +150,153 @@ fun ChapterSidebar(
                 HorizontalDivider(color = SurfaceBorder, thickness = 1.dp)
 
                 // Chapters list
-                LazyColumn(
+                ChapterListContent(
+                    chapters = chapters,
+                    activeChapterIndex = activeChapterIndex,
+                    isPlaying = isPlaying,
+                    onSelectChapter = onSelectChapter,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ChapterListContent(
+    chapters: List<Chapter>,
+    activeChapterIndex: Int,
+    isPlaying: Boolean,
+    onSelectChapter: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.8f,
+        targetValue = 1.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+
+    LazyColumn(
+        modifier = modifier.padding(vertical = 4.dp)
+    ) {
+        itemsIndexed(chapters) { index, chapter ->
+            val isSelected = index == activeChapterIndex
+            val itemBg = if (isSelected) SurfaceCard else Color.Transparent
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(itemBg)
+                    .clickable { onSelectChapter(index) }
+                    .padding(horizontal = 14.dp, vertical = 9.dp)
+                    .testTag("chapter_item_$index"),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Indicator line
+                Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(vertical = 4.dp)
+                        .width(3.dp)
+                        .height(42.dp)
+                        .background(if (isSelected) AccentEmerald else Color.Transparent)
+                )
+
+                // Chapter thumbnail
+                Box(
+                    modifier = Modifier
+                        .width(72.dp)
+                        .height(46.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(SurfaceCard)
+                        .border(1.dp, SurfaceBorder, RoundedCornerShape(6.dp)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    itemsIndexed(chapters) { index, chapter ->
-                        val isSelected = index == activeChapterIndex
-                        val itemBg = if (isSelected) SurfaceCard else Color.Transparent
+                    val thumbUrl = chapter.thumbnailUrl
+                        ?: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=300&q=80"
 
-                        Row(
+                    AsyncImage(
+                        model = thumbUrl,
+                        contentDescription = chapter.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    if (isSelected && isPlaying) {
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .background(itemBg)
-                                .clickable { onSelectChapter(index) }
-                                .padding(horizontal = 14.dp, vertical = 9.dp)
-                                .testTag("chapter_item_$index"),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.45f)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            // Indicator line
                             Box(
                                 modifier = Modifier
-                                    .width(3.dp)
-                                    .height(40.dp)
-                                    .background(if (isSelected) AccentEmerald else Color.Transparent)
+                                    .size(10.dp)
+                                    .scale(pulseScale)
+                                    .clip(CircleShape)
+                                    .background(AccentEmerald)
                             )
-
-                            // Chapter thumbnail
-                            Box(
-                                modifier = Modifier
-                                    .width(68.dp)
-                                    .height(44.dp)
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(SurfaceCard)
-                                    .border(1.dp, SurfaceBorder, RoundedCornerShape(6.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                val thumbUrl = chapter.thumbnailUrl
-                                    ?: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=300&q=80"
-
-                                AsyncImage(
-                                    model = thumbUrl,
-                                    contentDescription = chapter.name,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-
-                                if (isSelected && isPlaying) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(Color.Black.copy(alpha = 0.45f)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(10.dp)
-                                                .scale(pulseScale)
-                                                .clip(CircleShape)
-                                                .background(AccentEmerald)
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Info
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = chapter.name,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        color = if (isSelected) TextPrimary else TextSecondary,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        lineHeight = 16.sp
-                                    ),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-
-                                Spacer(modifier = Modifier.height(3.dp))
-
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    val duration = chapter.durationSeconds
-                                    val durationText = String.format(
-                                        Locale.US,
-                                        "%d:%02d",
-                                        duration / 60,
-                                        duration % 60
-                                    )
-
-                                    Text(
-                                        text = durationText,
-                                        fontSize = 11.sp,
-                                        color = TextMuted
-                                    )
-
-                                    if (isSelected) {
-                                        Text(
-                                            text = "• Active",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = AccentEmerald
-                                        )
-                                    }
-                                }
-                            }
                         }
+                    }
+                }
 
-                        HorizontalDivider(
-                            color = SurfaceBorder.copy(alpha = 0.4f),
-                            thickness = 0.5.dp,
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                // Info
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = chapter.name,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = if (isSelected) TextPrimary else TextSecondary,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            lineHeight = 18.sp
+                        ),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val duration = chapter.durationSeconds
+                        val durationText = String.format(
+                            Locale.US,
+                            "%d:%02d",
+                            duration / 60,
+                            duration % 60
                         )
+
+                        Text(
+                            text = durationText,
+                            fontSize = 11.sp,
+                            color = TextMuted
+                        )
+
+                        if (isSelected) {
+                            Text(
+                                text = "• Active",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = AccentEmerald
+                            )
+                        }
                     }
                 }
             }
+
+            HorizontalDivider(
+                color = SurfaceBorder.copy(alpha = 0.4f),
+                thickness = 0.5.dp,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
         }
     }
 }

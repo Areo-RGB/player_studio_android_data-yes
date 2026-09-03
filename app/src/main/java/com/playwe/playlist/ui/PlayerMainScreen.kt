@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.SlowMotionVideo
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material.icons.filled.ViewSidebar
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -57,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.playwe.playlist.model.PlaylistType
+import com.playwe.playlist.ui.components.ChapterListContent
 import com.playwe.playlist.ui.components.ChapterSidebar
 import com.playwe.playlist.ui.components.CountdownTimerDialog
 import com.playwe.playlist.ui.components.PlaylistSidebar
@@ -354,46 +357,168 @@ fun PlayerMainScreen(
                 val isDirect = uiState.isDirectVideo
                 val currentVideoId = activePlaylist?.videoId ?: ""
 
-                if (isDirect || activeChapter?.videoUrl != null) {
-                    VideoPlayerView(
-                        chapter = activeChapter,
-                        chapterIndex = uiState.activeChapterIndex,
-                        totalChapters = chapters.size,
-                        isPlaying = uiState.isPlaying,
-                        isLooping = uiState.isLooping,
-                        isSlowMotion = uiState.isSlowMotion,
-                        onTogglePlayPause = { viewModel.togglePlayPause() },
-                        onNextChapter = { viewModel.nextChapter() },
-                        onPrevChapter = { viewModel.prevChapter() },
-                        onChapterEnd = {
-                            if (uiState.activeChapterIndex < chapters.size - 1) {
-                                viewModel.nextChapter()
-                            } else {
-                                viewModel.setPlaying(false)
-                            }
-                        },
-                        onPlayerStateChange = { playing -> viewModel.setPlaying(playing) }
-                    )
+                if (uiState.isFullscreen) {
+                    // Fullscreen mode: Player occupies full screen area
+                    Box(modifier = Modifier.fillMaxSize().background(Black)) {
+                        if (isDirect || activeChapter?.videoUrl != null) {
+                            VideoPlayerView(
+                                chapter = activeChapter,
+                                chapterIndex = uiState.activeChapterIndex,
+                                totalChapters = chapters.size,
+                                isPlaying = uiState.isPlaying,
+                                isLooping = uiState.isLooping,
+                                isSlowMotion = uiState.isSlowMotion,
+                                onTogglePlayPause = { viewModel.togglePlayPause() },
+                                onNextChapter = { viewModel.nextChapter() },
+                                onPrevChapter = { viewModel.prevChapter() },
+                                onChapterEnd = {
+                                    if (uiState.activeChapterIndex < chapters.size - 1) {
+                                        viewModel.nextChapter()
+                                    } else {
+                                        viewModel.setPlaying(false)
+                                    }
+                                },
+                                onPlayerStateChange = { playing -> viewModel.setPlaying(playing) }
+                            )
+                        } else {
+                            YouTubeWebViewPlayer(
+                                videoId = currentVideoId,
+                                chapter = activeChapter,
+                                chapterIndex = uiState.activeChapterIndex,
+                                totalChapters = chapters.size,
+                                isPlaying = uiState.isPlaying,
+                                isLooping = uiState.isLooping,
+                                isSlowMotion = uiState.isSlowMotion,
+                                onTogglePlayPause = { viewModel.togglePlayPause() },
+                                onNextChapter = { viewModel.nextChapter() },
+                                onPrevChapter = { viewModel.prevChapter() },
+                                onChapterEnd = {
+                                    if (uiState.activeChapterIndex < chapters.size - 1) {
+                                        viewModel.nextChapter()
+                                    } else {
+                                        viewModel.setPlaying(false)
+                                    }
+                                },
+                                onPlayerStateChange = { playing -> viewModel.setPlaying(playing) }
+                            )
+                        }
+                    }
                 } else {
-                    YouTubeWebViewPlayer(
-                        videoId = currentVideoId,
-                        chapter = activeChapter,
-                        chapterIndex = uiState.activeChapterIndex,
-                        totalChapters = chapters.size,
-                        isPlaying = uiState.isPlaying,
-                        isLooping = uiState.isLooping,
-                        isSlowMotion = uiState.isSlowMotion,
-                        onTogglePlayPause = { viewModel.togglePlayPause() },
-                        onNextChapter = { viewModel.nextChapter() },
-                        onPrevChapter = { viewModel.prevChapter() },
-                        onChapterEnd = {
-                            if (uiState.activeChapterIndex < chapters.size - 1) {
-                                viewModel.nextChapter()
+                    // Vertical / Portrait Layout Structure: Video at top, Exercise list below
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // 1. Widescreen video player canvas (16:9 aspect ratio)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(16f / 9f)
+                                .background(Black)
+                        ) {
+                            if (isDirect || activeChapter?.videoUrl != null) {
+                                VideoPlayerView(
+                                    chapter = activeChapter,
+                                    chapterIndex = uiState.activeChapterIndex,
+                                    totalChapters = chapters.size,
+                                    isPlaying = uiState.isPlaying,
+                                    isLooping = uiState.isLooping,
+                                    isSlowMotion = uiState.isSlowMotion,
+                                    onTogglePlayPause = { viewModel.togglePlayPause() },
+                                    onNextChapter = { viewModel.nextChapter() },
+                                    onPrevChapter = { viewModel.prevChapter() },
+                                    onChapterEnd = {
+                                        if (uiState.activeChapterIndex < chapters.size - 1) {
+                                            viewModel.nextChapter()
+                                        } else {
+                                            viewModel.setPlaying(false)
+                                        }
+                                    },
+                                    onPlayerStateChange = { playing -> viewModel.setPlaying(playing) }
+                                )
                             } else {
-                                viewModel.setPlaying(false)
+                                YouTubeWebViewPlayer(
+                                    videoId = currentVideoId,
+                                    chapter = activeChapter,
+                                    chapterIndex = uiState.activeChapterIndex,
+                                    totalChapters = chapters.size,
+                                    isPlaying = uiState.isPlaying,
+                                    isLooping = uiState.isLooping,
+                                    isSlowMotion = uiState.isSlowMotion,
+                                    onTogglePlayPause = { viewModel.togglePlayPause() },
+                                    onNextChapter = { viewModel.nextChapter() },
+                                    onPrevChapter = { viewModel.prevChapter() },
+                                    onChapterEnd = {
+                                        if (uiState.activeChapterIndex < chapters.size - 1) {
+                                            viewModel.nextChapter()
+                                        } else {
+                                            viewModel.setPlaying(false)
+                                        }
+                                    },
+                                    onPlayerStateChange = { playing -> viewModel.setPlaying(playing) }
+                                )
                             }
-                        },
-                        onPlayerStateChange = { playing -> viewModel.setPlaying(playing) }
+                        }
+
+                        // 2. Exercises / Playlist Section Header
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp)
+                                .background(SurfaceDark)
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ViewList,
+                                contentDescription = null,
+                                tint = TextSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "${playlistName.uppercase()} EXERCISES (${chapters.size})",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.5.sp,
+                                    color = TextPrimary
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        HorizontalDivider(color = SurfaceBorder, thickness = 1.dp)
+
+                        // 3. Scrollable Exercises / Chapter List
+                        ChapterListContent(
+                            chapters = chapters,
+                            activeChapterIndex = uiState.activeChapterIndex,
+                            isPlaying = uiState.isPlaying,
+                            onSelectChapter = { idx -> viewModel.selectChapter(idx) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .background(DarkBackground)
+                        )
+                    }
+                }
+            }
+
+            // Floating Fullscreen Exit/Toggle Button when in Fullscreen Mode
+            if (uiState.isFullscreen) {
+                IconButton(
+                    onClick = { viewModel.toggleFullscreen() },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .testTag("floating_fullscreen_exit_btn")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FullscreenExit,
+                        contentDescription = "Exit Fullscreen",
+                        tint = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
