@@ -1,11 +1,20 @@
-<div align="center">
+# Playlist Player (Android)
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+A native Android video exercise and chapter playlist application built with **Kotlin** and **Jetpack Compose**.
 
-  <h1>Built with AI Studio</h2>
+## Features
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+- **Multi-Source Video Engine**: Supports high-performance direct video streaming via AndroidX Media3 (ExoPlayer) as well as embedded YouTube drills.
+- **Precision Chapter Navigation**: Interactive chapter/drill drawer with video segment timestamps, duration formatting, and active drill indicators.
+- **Smart Looping & Speed Controls**: Seamless single-chapter looping and **0.25x Slow Motion** playback for careful footwork analysis and training drills.
+- **Built-in Interval & Countdown Timer**: Configurable workout timer with minutes/seconds input, start/pause/resume/stop controls, and countdown alerts.
+- **Playlists Drawer**: Fast switcher between training programs (FIFA+ Collection, 10 Fast Feet Exercises, Ball Mastery, Juggling Skills).
+- **Responsive Landscape UI**: Optimized dark athletic UI with smooth slide-over sidebars, quick prev/next navigation overlays, and Material Design 3 styling.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Tech Stack
 
-</div>
+- **UI Framework**: Jetpack Compose & Material 3
+- **Language**: Kotlin 2.0
+- **Media Playback**: AndroidX Media3 (ExoPlayer 1.5.1) & Android WebView YouTube Player
+- **Image Loading**: Coil Compose 2.7.0
+- **Architecture**: Clean MVVM with Kotlin Coroutines and StateFlow

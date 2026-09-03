@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Playlist Player</string>
+    <string name="title_activity_main">Playlist Player</string>
+    <string name="playlists_title">Playlists</string>
+    <string name="chapters_title">Chapters</string>
+    <string name="countdown_timer">Countdown Timer</string>
+    <string name="slow_motion">Slow Motion (0.25x)</string>
+    <string name="loop_chapter">Loop Chapter</string>
+    <string name="previous_chapter">Previous Chapter</string>
+    <string name="next_chapter">Next Chapter</string>
+    <string name="play_pause">Play or Pause</string>
+</resources>

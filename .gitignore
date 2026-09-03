@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+.env.local
+*.local
+.DS_Store
+.idea/
+.vscode/
+android/.gradle/
+android/local.properties
+android/.idea/
+android/**/build/
+*.jks
+*.keystore
+desktop-youtube-uploader/
