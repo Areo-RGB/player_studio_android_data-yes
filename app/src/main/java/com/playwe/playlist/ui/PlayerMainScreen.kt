@@ -66,7 +66,6 @@ import com.playwe.playlist.ui.components.ChapterSidebar
 import com.playwe.playlist.ui.components.CountdownTimerDialog
 import com.playwe.playlist.ui.components.PlaylistSidebar
 import com.playwe.playlist.ui.components.VideoPlayerView
-import com.playwe.playlist.ui.components.YouTubeWebViewPlayer
 import com.playwe.playlist.ui.theme.AccentAmber
 import com.playwe.playlist.ui.theme.AccentBlue
 import com.playwe.playlist.ui.theme.AccentEmerald
@@ -162,14 +161,14 @@ fun PlayerMainScreen(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(4.dp))
-                                        .background(if (activePlaylist.type == PlaylistType.DIRECT) EmeraldBg else BlueBg)
+                                        .background(EmeraldBg)
                                         .padding(horizontal = 7.dp, vertical = 3.dp)
                                 ) {
                                     Text(
-                                        text = if (activePlaylist.type == PlaylistType.DIRECT) "DIRECT" else "YOUTUBE",
+                                        text = "DIRECT",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (activePlaylist.type == PlaylistType.DIRECT) AccentEmerald else AccentBlue,
+                                        color = AccentEmerald,
                                         maxLines = 1,
                                         softWrap = false
                                     )
@@ -361,9 +360,6 @@ fun PlayerMainScreen(
                 }
             } else {
                 // Main video player viewport
-                val isDirect = uiState.isDirectVideo
-                val currentVideoId = activePlaylist?.videoId ?: ""
-
                 // Single Column layout: The video player Box keeps its composition identity when toggling fullscreen!
                 Column(modifier = Modifier.fillMaxSize()) {
                     Box(
@@ -378,36 +374,19 @@ fun PlayerMainScreen(
                                 .background(Black)
                         }
                     ) {
-                        if (isDirect || activeChapter?.videoUrl != null) {
-                            VideoPlayerView(
-                                chapter = activeChapter,
-                                chapterIndex = uiState.activeChapterIndex,
-                                totalChapters = chapters.size,
-                                isPlaying = uiState.isPlaying,
-                                isLooping = uiState.isLooping,
-                                isSlowMotion = uiState.isSlowMotion,
-                                onTogglePlayPause = { viewModel.togglePlayPause() },
-                                onNextChapter = { viewModel.nextChapter() },
-                                onPrevChapter = { viewModel.prevChapter() },
-                                onChapterEnd = { viewModel.onChapterEnd() },
-                                onPlayerStateChange = { playing -> viewModel.setPlaying(playing) }
-                            )
-                        } else {
-                            YouTubeWebViewPlayer(
-                                videoId = currentVideoId,
-                                chapter = activeChapter,
-                                chapterIndex = uiState.activeChapterIndex,
-                                totalChapters = chapters.size,
-                                isPlaying = uiState.isPlaying,
-                                isLooping = uiState.isLooping,
-                                isSlowMotion = uiState.isSlowMotion,
-                                onTogglePlayPause = { viewModel.togglePlayPause() },
-                                onNextChapter = { viewModel.nextChapter() },
-                                onPrevChapter = { viewModel.prevChapter() },
-                                onChapterEnd = { viewModel.onChapterEnd() },
-                                onPlayerStateChange = { playing -> viewModel.setPlaying(playing) }
-                            )
-                        }
+                        VideoPlayerView(
+                            chapter = activeChapter,
+                            chapterIndex = uiState.activeChapterIndex,
+                            totalChapters = chapters.size,
+                            isPlaying = uiState.isPlaying,
+                            isLooping = uiState.isLooping,
+                            isSlowMotion = uiState.isSlowMotion,
+                            onTogglePlayPause = { viewModel.togglePlayPause() },
+                            onNextChapter = { viewModel.nextChapter() },
+                            onPrevChapter = { viewModel.prevChapter() },
+                            onChapterEnd = { viewModel.onChapterEnd() },
+                            onPlayerStateChange = { playing -> viewModel.setPlaying(playing) }
+                        )
                     }
 
                     if (!uiState.isFullscreen) {
