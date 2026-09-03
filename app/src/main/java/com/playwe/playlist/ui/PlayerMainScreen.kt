@@ -1,5 +1,6 @@
 package com.playwe.playlist.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -54,12 +55,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.playwe.playlist.R
 import com.playwe.playlist.model.PlaylistType
 import com.playwe.playlist.ui.components.ChapterListContent
 import com.playwe.playlist.ui.components.ChapterSidebar
@@ -138,11 +141,12 @@ fun PlayerMainScreen(
                                 onClick = { viewModel.togglePlaylistSidebar() },
                                 modifier = Modifier.size(42.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.QueueMusic,
+                                Image(
+                                    painter = painterResource(id = R.drawable.app_logo),
                                     contentDescription = "Toggle Playlists",
-                                    tint = if (uiState.isPlaylistSidebarOpen) TextPrimary else TextSecondary,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(RoundedCornerShape(6.dp))
                                 )
                             }
 
