@@ -47,6 +47,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -88,7 +90,8 @@ import java.util.Locale
 fun PlayerMainScreen(
     viewModel: PlayerViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val timerUiState by viewModel.timerUiState.collectAsStateWithLifecycle()
 
     val activePlaylist = uiState.activePlaylist
     val activeChapter = uiState.activeChapter
@@ -99,12 +102,14 @@ fun PlayerMainScreen(
         else -> "No Playlist"
     }
 
-    val timerFormatted = String.format(
-        Locale.US,
-        "%d:%02d",
-        uiState.timerRemainingSeconds / 60,
-        uiState.timerRemainingSeconds % 60
-    )
+    val timerFormatted = remember(timerUiState.timerRemainingSeconds) {
+        String.format(
+            Locale.US,
+            "%d:%02d",
+            timerUiState.timerRemainingSeconds / 60,
+            timerUiState.timerRemainingSeconds % 60
+        )
+    }
 
     Scaffold(
         containerColor = Black,
@@ -200,7 +205,7 @@ fun PlayerMainScreen(
                             }
 
                             // Countdown Timer Button
-                            val isTimerActive = uiState.timerState != TimerState.IDLE
+                            val isTimerActive = timerUiState.timerState != TimerState.IDLE
                             IconButton(
                                 onClick = { viewModel.setTimerDialogOpen(true) },
                                 modifier = Modifier
@@ -359,9 +364,20 @@ fun PlayerMainScreen(
                 val isDirect = uiState.isDirectVideo
                 val currentVideoId = activePlaylist?.videoId ?: ""
 
-                if (uiState.isFullscreen) {
-                    // Fullscreen mode: Player occupies full screen area
-                    Box(modifier = Modifier.fillMaxSize().background(Black)) {
+                // Single Column layout: The video player Box keeps its composition identity when toggling fullscreen!
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = if (uiState.isFullscreen) {
+                            Modifier
+                                .fillMaxSize()
+                                .background(Black)
+                        } else {
+                            Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(16f / 9f)
+                                .background(Black)
+                        }
+                    ) {
                         if (isDirect || activeChapter?.videoUrl != null) {
                             VideoPlayerView(
                                 chapter = activeChapter,
@@ -373,13 +389,7 @@ fun PlayerMainScreen(
                                 onTogglePlayPause = { viewModel.togglePlayPause() },
                                 onNextChapter = { viewModel.nextChapter() },
                                 onPrevChapter = { viewModel.prevChapter() },
-                                onChapterEnd = {
-                                    if (uiState.activeChapterIndex < chapters.size - 1) {
-                                        viewModel.nextChapter()
-                                    } else {
-                                        viewModel.setPlaying(false)
-                                    }
-                                },
+                                onChapterEnd = { viewModel.onChapterEnd() },
                                 onPlayerStateChange = { playing -> viewModel.setPlaying(playing) }
                             )
                         } else {
@@ -394,71 +404,13 @@ fun PlayerMainScreen(
                                 onTogglePlayPause = { viewModel.togglePlayPause() },
                                 onNextChapter = { viewModel.nextChapter() },
                                 onPrevChapter = { viewModel.prevChapter() },
-                                onChapterEnd = {
-                                    if (uiState.activeChapterIndex < chapters.size - 1) {
-                                        viewModel.nextChapter()
-                                    } else {
-                                        viewModel.setPlaying(false)
-                                    }
-                                },
+                                onChapterEnd = { viewModel.onChapterEnd() },
                                 onPlayerStateChange = { playing -> viewModel.setPlaying(playing) }
                             )
                         }
                     }
-                } else {
-                    // Vertical / Portrait Layout Structure: Video at top, Exercise list below
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        // 1. Widescreen video player canvas (16:9 aspect ratio)
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(16f / 9f)
-                                .background(Black)
-                        ) {
-                            if (isDirect || activeChapter?.videoUrl != null) {
-                                VideoPlayerView(
-                                    chapter = activeChapter,
-                                    chapterIndex = uiState.activeChapterIndex,
-                                    totalChapters = chapters.size,
-                                    isPlaying = uiState.isPlaying,
-                                    isLooping = uiState.isLooping,
-                                    isSlowMotion = uiState.isSlowMotion,
-                                    onTogglePlayPause = { viewModel.togglePlayPause() },
-                                    onNextChapter = { viewModel.nextChapter() },
-                                    onPrevChapter = { viewModel.prevChapter() },
-                                    onChapterEnd = {
-                                        if (uiState.activeChapterIndex < chapters.size - 1) {
-                                            viewModel.nextChapter()
-                                        } else {
-                                            viewModel.setPlaying(false)
-                                        }
-                                    },
-                                    onPlayerStateChange = { playing -> viewModel.setPlaying(playing) }
-                                )
-                            } else {
-                                YouTubeWebViewPlayer(
-                                    videoId = currentVideoId,
-                                    chapter = activeChapter,
-                                    chapterIndex = uiState.activeChapterIndex,
-                                    totalChapters = chapters.size,
-                                    isPlaying = uiState.isPlaying,
-                                    isLooping = uiState.isLooping,
-                                    isSlowMotion = uiState.isSlowMotion,
-                                    onTogglePlayPause = { viewModel.togglePlayPause() },
-                                    onNextChapter = { viewModel.nextChapter() },
-                                    onPrevChapter = { viewModel.prevChapter() },
-                                    onChapterEnd = {
-                                        if (uiState.activeChapterIndex < chapters.size - 1) {
-                                            viewModel.nextChapter()
-                                        } else {
-                                            viewModel.setPlaying(false)
-                                        }
-                                    },
-                                    onPlayerStateChange = { playing -> viewModel.setPlaying(playing) }
-                                )
-                            }
-                        }
 
+                    if (!uiState.isFullscreen) {
                         // 2. Exercises / Playlist Section Header
                         Row(
                             modifier = Modifier
@@ -547,13 +499,13 @@ fun PlayerMainScreen(
 
             // Timer Dialog Modal
             CountdownTimerDialog(
-                isOpen = uiState.isTimerDialogOpen,
-                timerState = uiState.timerState,
-                timerMinutes = uiState.timerMinutes,
-                timerSeconds = uiState.timerSeconds,
-                remainingSeconds = uiState.timerRemainingSeconds,
-                onMinutesChange = { m -> viewModel.setTimerConfig(m, uiState.timerSeconds) },
-                onSecondsChange = { s -> viewModel.setTimerConfig(uiState.timerMinutes, s) },
+                isOpen = timerUiState.isTimerDialogOpen,
+                timerState = timerUiState.timerState,
+                timerMinutes = timerUiState.timerMinutes,
+                timerSeconds = timerUiState.timerSeconds,
+                remainingSeconds = timerUiState.timerRemainingSeconds,
+                onMinutesChange = { m -> viewModel.setTimerConfig(m, timerUiState.timerSeconds) },
+                onSecondsChange = { s -> viewModel.setTimerConfig(timerUiState.timerMinutes, s) },
                 onStart = { viewModel.startTimer() },
                 onPause = { viewModel.pauseTimer() },
                 onStop = { viewModel.stopTimer() },

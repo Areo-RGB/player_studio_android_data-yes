@@ -6,7 +6,7 @@ enum class PlaylistType {
 }
 
 data class Chapter(
-    val id: String = java.util.UUID.randomUUID().toString(),
+    val id: String,
     val name: String,
     val startSeconds: Long,
     val endSeconds: Long,
@@ -19,7 +19,7 @@ data class Chapter(
 }
 
 data class Playlist(
-    val id: String = java.util.UUID.randomUUID().toString(),
+    val id: String,
     val name: String,
     val type: PlaylistType = PlaylistType.DIRECT,
     val videoId: String? = null,

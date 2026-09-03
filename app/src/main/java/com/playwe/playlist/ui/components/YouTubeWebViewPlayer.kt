@@ -37,6 +37,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -98,24 +99,32 @@ fun YouTubeWebViewPlayer(
     val startSec = chapter?.startSeconds ?: 0L
     val endSec = chapter?.endSeconds ?: 0L
 
+    val currentStartSec by rememberUpdatedState(startSec)
+    val currentEndSec by rememberUpdatedState(endSec)
+    val currentIsLooping by rememberUpdatedState(isLooping)
+    val currentOnChapterEnd by rememberUpdatedState(onChapterEnd)
+    val currentOnPlayerStateChange by rememberUpdatedState(onPlayerStateChange)
+
     val jsInterface = remember {
         WebAppInterface(
             onStateChangeCallback = { state ->
                 // 1 = playing, 2 = paused, 0 = ended
-                onPlayerStateChange(state == 1)
+                currentOnPlayerStateChange(state == 1)
                 if (state == 0) {
-                    onChapterEnd()
+                    currentOnChapterEnd()
                 }
             },
             onTimeUpdateCallback = { time ->
-                if (endSec > 0 && time >= endSec) {
-                    if (isLooping) {
+                val end = currentEndSec
+                val start = currentStartSec
+                if (end > 0 && time >= end) {
+                    if (currentIsLooping) {
                         webViewRef?.evaluateJavascript(
-                            "if (window.player && window.player.seekTo) { window.player.seekTo($startSec, true); window.player.playVideo(); }",
+                            "if (window.player && window.player.seekTo) { window.player.seekTo($start, true); window.player.playVideo(); }",
                             null
                         )
                     } else {
-                        onChapterEnd()
+                        currentOnChapterEnd()
                     }
                 }
             }
@@ -167,7 +176,7 @@ fun YouTubeWebViewPlayer(
                     function onPlayerReady(event) {
                         window.AndroidApp.onPlayerStateChange(-1); // Ready
                         setInterval(function() {
-                            if (player && player.getCurrentTime) {
+                            if (player && player.getCurrentTime && player.getPlayerState && player.getPlayerState() === 1) {
                                 window.AndroidApp.onTimeUpdate(player.getCurrentTime());
                             }
                         }, 500);
@@ -182,8 +191,20 @@ fun YouTubeWebViewPlayer(
         """.trimIndent()
     }
 
-    // Load or switch video/chapter
-    LaunchedEffect(videoId, chapter) {
+    DisposableEffect(Unit) {
+        onDispose {
+            webViewRef?.apply {
+                stopLoading()
+                removeJavascriptInterface("AndroidApp")
+                webChromeClient = null
+                destroy()
+            }
+            webViewRef = null
+        }
+    }
+
+    // Load or switch video/chapter using primitive keys
+    LaunchedEffect(videoId, chapter?.name, startSec) {
         val webView = webViewRef ?: return@LaunchedEffect
         if (videoId.isNotEmpty()) {
             webView.evaluateJavascript(

@@ -70,17 +70,6 @@ fun ChapterSidebar(
 ) {
     if (!isOpen) return
 
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.8f,
-        targetValue = 1.3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseScale"
-    )
-
     Box(modifier = Modifier.fillMaxSize()) {
         // Backdrop overlay
         Box(

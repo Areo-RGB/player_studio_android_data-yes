@@ -26,7 +26,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -108,22 +110,26 @@ fun VideoPlayerView(
         exoPlayer.volume = if (isSlowMotion) 0f else 1f
     }
 
+    val currentIsLooping by rememberUpdatedState(isLooping)
+    val currentOnChapterEnd by rememberUpdatedState(onChapterEnd)
+    val currentOnPlayerStateChange by rememberUpdatedState(onPlayerStateChange)
+
     // Listen to ExoPlayer playback events & end of media
-    DisposableEffect(exoPlayer, isLooping) {
+    DisposableEffect(exoPlayer) {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_ENDED) {
-                    if (isLooping) {
+                    if (currentIsLooping) {
                         exoPlayer.seekTo(0)
                         exoPlayer.play()
                     } else {
-                        onChapterEnd()
+                        currentOnChapterEnd()
                     }
                 }
             }
 
             override fun onIsPlayingChanged(playing: Boolean) {
-                onPlayerStateChange(playing)
+                currentOnPlayerStateChange(playing)
             }
         }
         exoPlayer.addListener(listener)

@@ -20,6 +20,14 @@ enum class TimerState {
     PAUSED
 }
 
+data class TimerUiState(
+    val isTimerDialogOpen: Boolean = false,
+    val timerMinutes: Int = 1,
+    val timerSeconds: Int = 30,
+    val timerRemainingSeconds: Int = 90,
+    val timerState: TimerState = TimerState.IDLE
+)
+
 data class PlayerUiState(
     val playlists: List<Playlist> = emptyList(),
     val activePlaylistIndex: Int = 0,
@@ -32,11 +40,6 @@ data class PlayerUiState(
     val currentTimeSeconds: Float = 0f,
     val isPlaylistSidebarOpen: Boolean = false,
     val isChapterSidebarOpen: Boolean = false,
-    val isTimerDialogOpen: Boolean = false,
-    val timerMinutes: Int = 1,
-    val timerSeconds: Int = 30,
-    val timerRemainingSeconds: Int = 90,
-    val timerState: TimerState = TimerState.IDLE,
     val directSourceMode: String = "online", // "online" or "local"
     val isFullscreen: Boolean = false
 ) {
@@ -63,6 +66,9 @@ class PlayerViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
+
+    private val _timerUiState = MutableStateFlow(TimerUiState())
+    val timerUiState: StateFlow<TimerUiState> = _timerUiState.asStateFlow()
 
     private var timerJob: Job? = null
 
@@ -186,14 +192,23 @@ class PlayerViewModel : ViewModel() {
         }
     }
 
+    fun onChapterEnd() {
+        val state = _uiState.value
+        if (state.activeChapterIndex < state.chapters.size - 1) {
+            nextChapter()
+        } else {
+            setPlaying(false)
+        }
+    }
+
     fun setTimerDialogOpen(open: Boolean) {
-        _uiState.update { it.copy(isTimerDialogOpen = open) }
+        _timerUiState.update { it.copy(isTimerDialogOpen = open) }
     }
 
     fun setTimerConfig(minutes: Int, seconds: Int) {
         val clampedMins = minutes.coerceIn(0, 99)
         val clampedSecs = seconds.coerceIn(0, 59)
-        _uiState.update {
+        _timerUiState.update {
             it.copy(
                 timerMinutes = clampedMins,
                 timerSeconds = clampedSecs,
@@ -203,7 +218,7 @@ class PlayerViewModel : ViewModel() {
     }
 
     fun startTimer() {
-        val state = _uiState.value
+        val state = _timerUiState.value
         val initialRemaining = if (state.timerState == TimerState.IDLE) {
             (state.timerMinutes * 60) + state.timerSeconds
         } else {
@@ -212,7 +227,7 @@ class PlayerViewModel : ViewModel() {
 
         if (initialRemaining <= 0) return
 
-        _uiState.update {
+        _timerUiState.update {
             it.copy(
                 timerRemainingSeconds = initialRemaining,
                 timerState = TimerState.RUNNING
@@ -221,9 +236,9 @@ class PlayerViewModel : ViewModel() {
 
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
-            while (_uiState.value.timerRemainingSeconds > 0 && _uiState.value.timerState == TimerState.RUNNING) {
+            while (_timerUiState.value.timerRemainingSeconds > 0 && _timerUiState.value.timerState == TimerState.RUNNING) {
                 delay(1000)
-                _uiState.update {
+                _timerUiState.update {
                     val next = it.timerRemainingSeconds - 1
                     if (next <= 0) {
                         it.copy(timerRemainingSeconds = 0, timerState = TimerState.IDLE)
@@ -237,12 +252,12 @@ class PlayerViewModel : ViewModel() {
 
     fun pauseTimer() {
         timerJob?.cancel()
-        _uiState.update { it.copy(timerState = TimerState.PAUSED) }
+        _timerUiState.update { it.copy(timerState = TimerState.PAUSED) }
     }
 
     fun stopTimer() {
         timerJob?.cancel()
-        _uiState.update {
+        _timerUiState.update {
             val resetTime = (it.timerMinutes * 60) + it.timerSeconds
             it.copy(
                 timerState = TimerState.IDLE,

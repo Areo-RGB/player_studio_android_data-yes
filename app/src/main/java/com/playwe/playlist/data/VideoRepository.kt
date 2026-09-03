@@ -68,8 +68,10 @@ object VideoRepository {
                         val chVideoUrl = chObj.getNullableString("videoUrl")
                         val chThumbUrl = chObj.getNullableString("thumbnailUrl")
 
+                        val chId = chObj.getNullableString("id") ?: "ch_${name.hashCode()}_${chName.hashCode()}_${startSec}_$j"
                         chaptersList.add(
                             Chapter(
+                                id = chId,
                                 name = chName,
                                 startSeconds = startSec,
                                 endSeconds = endSec,
@@ -80,8 +82,10 @@ object VideoRepository {
                     }
                 }
 
+                val plId = obj.getNullableString("id") ?: "pl_${name.hashCode()}_${videoId ?: videoUrl ?: i}"
                 list.add(
                     Playlist(
+                        id = plId,
                         name = name,
                         type = type,
                         videoId = videoId,
