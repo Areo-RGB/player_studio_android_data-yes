@@ -1,5 +1,7 @@
 package com.playwe.playlist.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.HourglassTop
@@ -46,6 +49,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -94,6 +98,17 @@ fun PlayerMainScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val timerUiState by viewModel.timerUiState.collectAsStateWithLifecycle()
+    val localFolderPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        uri?.let(viewModel::selectLocalFolder)
+    }
+
+    LaunchedEffect(Unit) {
+        if (!viewModel.hasLocalFolder()) {
+            localFolderPicker.launch(null)
+        }
+    }
 
     val activePlaylist = uiState.activePlaylist
     val activeChapter = uiState.activeChapter
@@ -192,6 +207,21 @@ fun PlayerMainScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
+                            // Device storage folder button
+                            IconButton(
+                                onClick = { localFolderPicker.launch(null) },
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .testTag("choose_local_folder_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FolderOpen,
+                                    contentDescription = "Choose device video folder",
+                                    tint = TextSecondary,
+                                    modifier = Modifier.size(21.dp)
+                                )
+                            }
+
                             // Sync / Refresh button
                             IconButton(
                                 onClick = { viewModel.loadPlaylists() },

@@ -1,5 +1,9 @@
 package com.playwe.playlist.data
 
+import android.content.Context
+import android.media.MediaMetadataRetriever
+import android.net.Uri
+import android.provider.DocumentsContract
 import com.playwe.playlist.model.Chapter
 import com.playwe.playlist.model.Playlist
 import com.playwe.playlist.model.PlaylistType
@@ -13,6 +17,9 @@ import java.net.URL
 object VideoRepository {
 
     const val DATA_URL = "https://cdn.jsdelivr.net/gh/Areo-RGB/data.json@main/data.json"
+    private const val PREFERENCES_NAME = "video_storage"
+    private const val LOCAL_FOLDER_URI_KEY = "local_folder_uri"
+    private val VIDEO_EXTENSIONS = setOf("mp4", "mkv", "webm", "mov", "avi", "m4v", "3gp")
 
     suspend fun fetchPlaylists(url: String = DATA_URL): Result<List<Playlist>> = withContext(Dispatchers.IO) {
         try {
@@ -41,6 +48,148 @@ object VideoRepository {
             Result.success(fallback)
         } else {
             Result.failure(Exception("Failed to load playlists"))
+        }
+    }
+
+    suspend fun fetchPlaylistsWithLocal(context: Context, url: String = DATA_URL): Result<List<Playlist>> {
+        val remoteResult = fetchPlaylists(url)
+        val savedFolderUri = getSavedLocalFolderUri(context)
+            ?: return remoteResult
+        val localResult = loadLocalPlaylists(context, savedFolderUri)
+
+        return when {
+            remoteResult.isSuccess -> Result.success(
+                remoteResult.getOrThrow() + localResult.getOrElse { emptyList() }
+            )
+            localResult.isSuccess -> localResult
+            else -> remoteResult
+        }
+    }
+
+    fun getSavedLocalFolderUri(context: Context): Uri? {
+        return context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+            .getString(LOCAL_FOLDER_URI_KEY, null)
+            ?.let(Uri::parse)
+    }
+
+    fun saveLocalFolderUri(context: Context, uri: Uri) {
+        context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(LOCAL_FOLDER_URI_KEY, uri.toString())
+            .apply()
+    }
+
+    suspend fun loadLocalPlaylists(context: Context, treeUri: Uri): Result<List<Playlist>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val rootEntries = queryChildren(context, treeUri)
+                val playlists = rootEntries
+                    .filter { it.mimeType == DocumentsContract.Document.MIME_TYPE_DIR }
+                    .sortedBy { it.name.lowercase() }
+                    .mapNotNull { folder ->
+                        val chapters = queryChildren(context, folder.uri)
+                            .filter(::isVideo)
+                            .sortedBy { it.name.lowercase() }
+                            .mapIndexed { index, video ->
+                                Chapter(
+                                    id = "local_${video.documentId}",
+                                    name = video.name.substringBeforeLast('.', video.name),
+                                    startSeconds = 0,
+                                    endSeconds = readDurationSeconds(context, video.uri),
+                                    localPath = video.uri.toString()
+                                )
+                            }
+                        if (chapters.isEmpty()) {
+                            null
+                        } else {
+                            Playlist(
+                                id = "local_${folder.documentId}",
+                                name = folder.name,
+                                type = PlaylistType.DIRECT,
+                                chapters = chapters
+                            )
+                        }
+                    }
+                    .toMutableList()
+
+                val rootVideos = rootEntries
+                    .filter(::isVideo)
+                    .sortedBy { it.name.lowercase() }
+                    .map { video ->
+                        Chapter(
+                            id = "local_${video.documentId}",
+                            name = video.name.substringBeforeLast('.', video.name),
+                            startSeconds = 0,
+                            endSeconds = readDurationSeconds(context, video.uri),
+                            localPath = video.uri.toString()
+                        )
+                    }
+                if (rootVideos.isNotEmpty()) {
+                    playlists += Playlist(
+                        id = "local_root",
+                        name = "Videos",
+                        type = PlaylistType.DIRECT,
+                        chapters = rootVideos
+                    )
+                }
+
+                Result.success(playlists)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    private data class DocumentEntry(
+        val documentId: String,
+        val name: String,
+        val mimeType: String,
+        val uri: Uri
+    )
+
+    private fun queryChildren(context: Context, parentUri: Uri): List<DocumentEntry> {
+        val documentId = DocumentsContract.getDocumentId(parentUri)
+        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(parentUri, documentId)
+        val entries = mutableListOf<DocumentEntry>()
+        val projection = arrayOf(
+            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            DocumentsContract.Document.COLUMN_MIME_TYPE
+        )
+
+        context.contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
+            val idColumn = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+            val nameColumn = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+            val mimeColumn = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
+            while (cursor.moveToNext()) {
+                val childId = cursor.getString(idColumn)
+                val name = cursor.getString(nameColumn) ?: continue
+                val mimeType = cursor.getString(mimeColumn) ?: ""
+                entries += DocumentEntry(
+                    documentId = childId,
+                    name = name,
+                    mimeType = mimeType,
+                    uri = DocumentsContract.buildDocumentUriUsingTree(parentUri, childId)
+                )
+            }
+        }
+        return entries
+    }
+
+    private fun isVideo(entry: DocumentEntry): Boolean {
+        return entry.mimeType.startsWith("video/") ||
+            entry.name.substringAfterLast('.', "").lowercase() in VIDEO_EXTENSIONS
+    }
+
+    private fun readDurationSeconds(context: Context, uri: Uri): Long {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(context, uri)
+            (retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull() ?: 0L) / 1000L
+        } catch (_: Exception) {
+            0L
+        } finally {
+            retriever.release()
         }
     }
 

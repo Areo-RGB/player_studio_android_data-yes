@@ -81,11 +81,10 @@ fun VideoPlayerView(
         }
     }
 
-    // Handle source changes
-    LaunchedEffect(chapter?.videoUrl) {
-        val url = chapter?.videoUrl
-        if (!url.isNullOrEmpty()) {
-            val mediaItem = MediaItem.fromUri(url)
+    LaunchedEffect(chapter?.videoUrl, chapter?.localPath) {
+        val source = chapter?.videoUrl ?: chapter?.localPath
+        if (!source.isNullOrEmpty()) {
+            val mediaItem = MediaItem.fromUri(source)
             exoPlayer.setMediaItem(mediaItem)
             exoPlayer.prepare()
             if (isPlaying) {

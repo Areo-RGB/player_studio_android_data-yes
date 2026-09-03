@@ -13,3 +13,9 @@ android/**/build/
 *.jks
 *.keystore
 desktop-youtube-uploader/
+.gitignore
+gradle/
+build/
+.gradle/
+.claude/
+.gradle/buildOutputCleanup

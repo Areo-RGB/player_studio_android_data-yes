@@ -1,6 +1,9 @@
 package com.playwe.playlist.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.Intent
+import android.net.Uri
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.playwe.playlist.data.VideoRepository
 import com.playwe.playlist.model.Chapter
@@ -62,7 +65,9 @@ data class PlayerUiState(
         get() = if (isSlowMotion) 0.25f else 1.0f
 }
 
-class PlayerViewModel : ViewModel() {
+class PlayerViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val appContext = application.applicationContext
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
@@ -79,7 +84,7 @@ class PlayerViewModel : ViewModel() {
     fun loadPlaylists() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            val result = VideoRepository.fetchPlaylists()
+            val result = VideoRepository.fetchPlaylistsWithLocal(appContext)
             result.onSuccess { fetchedList ->
                 _uiState.update {
                     it.copy(
@@ -99,6 +104,23 @@ class PlayerViewModel : ViewModel() {
                 }
             }
         }
+    }
+
+    fun selectLocalFolder(uri: Uri) {
+        try {
+            appContext.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        } catch (_: SecurityException) {
+            // Some document providers grant only a temporary read permission.
+        }
+        VideoRepository.saveLocalFolderUri(appContext, uri)
+        loadPlaylists()
+    }
+
+    fun hasLocalFolder(): Boolean {
+        return VideoRepository.getSavedLocalFolderUri(appContext) != null
     }
 
     fun selectPlaylist(index: Int) {
