@@ -68,6 +68,8 @@ data class PlayerUiState(
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
 
     private val appContext = application.applicationContext
+    private var selectedLocalFolderUri = VideoRepository.getSavedLocalFolderUri(appContext)
+        ?.takeIf { VideoRepository.hasPersistedReadPermission(appContext, it) }
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
@@ -84,7 +86,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun loadPlaylists() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            val result = VideoRepository.fetchPlaylistsWithLocal(appContext)
+            val result = VideoRepository.fetchPlaylistsWithLocal(
+                context = appContext,
+                localFolderUri = selectedLocalFolderUri
+            )
             result.onSuccess { fetchedList ->
                 _uiState.update {
                     it.copy(
@@ -107,20 +112,24 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun selectLocalFolder(uri: Uri) {
-        try {
+        selectedLocalFolderUri = uri
+        val persisted = try {
             appContext.contentResolver.takePersistableUriPermission(
                 uri,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
+            true
         } catch (_: SecurityException) {
-            // Some document providers grant only a temporary read permission.
+            false
         }
-        VideoRepository.saveLocalFolderUri(appContext, uri)
+        if (persisted) {
+            VideoRepository.saveLocalFolderUri(appContext, uri)
+        }
         loadPlaylists()
     }
 
     fun hasLocalFolder(): Boolean {
-        return VideoRepository.getSavedLocalFolderUri(appContext) != null
+        return selectedLocalFolderUri != null
     }
 
     fun selectPlaylist(index: Int) {

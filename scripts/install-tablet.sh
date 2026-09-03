@@ -55,7 +55,11 @@ fi
 
 printf 'Installing on %s...\n' "$DEVICE"
 adb -s "$DEVICE" shell am force-stop "$PACKAGE_NAME"
-adb -s "$DEVICE" install -r "$APK_PATH"
+if ! adb -s "$DEVICE" install -r "$APK_PATH"; then
+    printf 'Install failed (likely signature mismatch). Uninstalling old version and reinstalling...\n'
+    adb -s "$DEVICE" uninstall "$PACKAGE_NAME" || true
+    adb -s "$DEVICE" install "$APK_PATH"
+fi
 
 printf 'Launching %s...\n' "$PACKAGE_NAME"
 adb -s "$DEVICE" shell monkey \

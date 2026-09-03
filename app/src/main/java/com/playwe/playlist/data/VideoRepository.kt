@@ -51,11 +51,14 @@ object VideoRepository {
         }
     }
 
-    suspend fun fetchPlaylistsWithLocal(context: Context, url: String = DATA_URL): Result<List<Playlist>> {
+    suspend fun fetchPlaylistsWithLocal(
+        context: Context,
+        localFolderUri: Uri?,
+        url: String = DATA_URL
+    ): Result<List<Playlist>> {
         val remoteResult = fetchPlaylists(url)
-        val savedFolderUri = getSavedLocalFolderUri(context)
-            ?: return remoteResult
-        val localResult = loadLocalPlaylists(context, savedFolderUri)
+        val selectedFolderUri = localFolderUri ?: return remoteResult
+        val localResult = loadLocalPlaylists(context, selectedFolderUri)
 
         return when {
             remoteResult.isSuccess -> Result.success(
@@ -72,7 +75,12 @@ object VideoRepository {
             ?.let(Uri::parse)
     }
 
-    fun saveLocalFolderUri(context: Context, uri: Uri) {
+    fun hasPersistedReadPermission(context: Context, uri: Uri): Boolean {
+        return context.contentResolver.persistedUriPermissions.any {
+            it.uri == uri && it.isReadPermission
+        }
+    }
+
         context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
             .edit()
             .putString(LOCAL_FOLDER_URI_KEY, uri.toString())
@@ -82,12 +90,13 @@ object VideoRepository {
     suspend fun loadLocalPlaylists(context: Context, treeUri: Uri): Result<List<Playlist>> =
         withContext(Dispatchers.IO) {
             try {
-                val rootEntries = queryChildren(context, treeUri)
+                val rootDocumentId = DocumentsContract.getTreeDocumentId(treeUri)
+                val rootEntries = queryChildren(context, treeUri, rootDocumentId)
                 val playlists = rootEntries
                     .filter { it.mimeType == DocumentsContract.Document.MIME_TYPE_DIR }
                     .sortedBy { it.name.lowercase() }
                     .mapNotNull { folder ->
-                        val chapters = queryChildren(context, folder.uri)
+                        val chapters = queryChildren(context, treeUri, folder.documentId)
                             .filter(::isVideo)
                             .sortedBy { it.name.lowercase() }
                             .mapIndexed { index, video ->
@@ -146,9 +155,12 @@ object VideoRepository {
         val uri: Uri
     )
 
-    private fun queryChildren(context: Context, parentUri: Uri): List<DocumentEntry> {
-        val documentId = DocumentsContract.getDocumentId(parentUri)
-        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(parentUri, documentId)
+    private fun queryChildren(
+        context: Context,
+        treeUri: Uri,
+        parentDocumentId: String
+    ): List<DocumentEntry> {
+        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parentDocumentId)
         val entries = mutableListOf<DocumentEntry>()
         val projection = arrayOf(
             DocumentsContract.Document.COLUMN_DOCUMENT_ID,
@@ -168,7 +180,7 @@ object VideoRepository {
                     documentId = childId,
                     name = name,
                     mimeType = mimeType,
-                    uri = DocumentsContract.buildDocumentUriUsingTree(parentUri, childId)
+                    uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, childId)
                 )
             }
         }
