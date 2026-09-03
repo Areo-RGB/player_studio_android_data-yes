@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import androidx.compose.ui.graphics.graphicsLayer
 import com.playwe.playlist.model.Chapter
 import com.playwe.playlist.ui.theme.AccentEmerald
 import com.playwe.playlist.ui.theme.DarkBackground
@@ -163,13 +164,7 @@ fun ChapterSidebar(
 }
 
 @Composable
-fun ChapterListContent(
-    chapters: List<Chapter>,
-    activeChapterIndex: Int,
-    isPlaying: Boolean,
-    onSelectChapter: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun PulsingDot(modifier: Modifier = Modifier) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 0.8f,
@@ -181,10 +176,32 @@ fun ChapterListContent(
         label = "pulseScale"
     )
 
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = pulseScale
+                scaleY = pulseScale
+            }
+            .clip(CircleShape)
+            .background(AccentEmerald)
+    )
+}
+
+@Composable
+fun ChapterListContent(
+    chapters: List<Chapter>,
+    activeChapterIndex: Int,
+    isPlaying: Boolean,
+    onSelectChapter: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
     LazyColumn(
         modifier = modifier.padding(vertical = 4.dp)
     ) {
-        itemsIndexed(chapters) { index, chapter ->
+        itemsIndexed(
+            items = chapters,
+            key = { index, chapter -> "${chapter.name}_${chapter.videoUrl ?: ""}_$index" }
+        ) { index, chapter ->
             val isSelected = index == activeChapterIndex
             val itemBg = if (isSelected) SurfaceCard else Color.Transparent
 
@@ -233,13 +250,7 @@ fun ChapterListContent(
                                 .background(Color.Black.copy(alpha = 0.45f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .scale(pulseScale)
-                                    .clip(CircleShape)
-                                    .background(AccentEmerald)
-                            )
+                            PulsingDot(modifier = Modifier.size(10.dp))
                         }
                     }
                 }

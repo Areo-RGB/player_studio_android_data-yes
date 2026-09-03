@@ -114,16 +114,16 @@ fun PlayerMainScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp)
+                            .height(64.dp)
                             .background(SurfaceDark)
-                            .padding(horizontal = 8.dp),
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         // Left: Playlists button + title
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier
                                 .weight(1f, fill = false)
                                 .clickable { viewModel.togglePlaylistSidebar() }
@@ -132,13 +132,13 @@ fun PlayerMainScreen(
                         ) {
                             IconButton(
                                 onClick = { viewModel.togglePlaylistSidebar() },
-                                modifier = Modifier.size(40.dp)
+                                modifier = Modifier.size(42.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.QueueMusic,
                                     contentDescription = "Toggle Playlists",
                                     tint = if (uiState.isPlaylistSidebarOpen) TextPrimary else TextSecondary,
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
 
@@ -150,7 +150,7 @@ fun PlayerMainScreen(
                                 ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.widthIn(max = 220.dp)
+                                modifier = Modifier.widthIn(max = 180.dp)
                             )
 
                             if (activePlaylist != null) {
@@ -158,13 +158,15 @@ fun PlayerMainScreen(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(4.dp))
                                         .background(if (activePlaylist.type == PlaylistType.DIRECT) EmeraldBg else BlueBg)
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        .padding(horizontal = 7.dp, vertical = 3.dp)
                                 ) {
                                     Text(
                                         text = if (activePlaylist.type == PlaylistType.DIRECT) "DIRECT" else "YOUTUBE",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (activePlaylist.type == PlaylistType.DIRECT) AccentEmerald else AccentBlue
+                                        color = if (activePlaylist.type == PlaylistType.DIRECT) AccentEmerald else AccentBlue,
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
                             }
@@ -461,11 +463,11 @@ fun PlayerMainScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(46.dp)
+                                .height(52.dp)
                                 .background(SurfaceDark)
-                                .padding(horizontal = 16.dp),
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ViewList,

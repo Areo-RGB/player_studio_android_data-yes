@@ -138,7 +138,10 @@ fun PlaylistSidebar(
                         .fillMaxSize()
                         .padding(vertical = 4.dp)
                 ) {
-                    itemsIndexed(playlists) { index, playlist ->
+                    itemsIndexed(
+                        items = playlists,
+                        key = { index, playlist -> "${playlist.id}_$index" }
+                    ) { index, playlist ->
                         val isSelected = index == activeIndex
                         val itemBg = if (isSelected) SurfaceCard else Color.Transparent
 
